@@ -1,0 +1,90 @@
+<html>
+
+<button id="initButton" onclick="init()">Connect</button>
+<video id="player" src="catjamming.mp4" loop> </video>
+
+<style>
+html, body {
+	margin: 0px;
+	padding: 0px;
+}
+#player {
+	height: 100%;
+	width: 100%;
+	
+	display: none;
+	
+}
+</style>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+let player = document.getElementById("player")
+let initButton = document.getElementById("initButton");
+
+let offsetTimer = -1;
+
+let timeOffset = 0;
+
+function init() {
+	var socket = io();
+
+	socket.on('connect', () => {
+	  player.style.display = "block"
+	  initButton.style.display = "none"
+	  
+	  offsetTimer = getTime();
+	  socket.emit('timeSync', offsetTimer);
+	  
+	  
+	});
+	
+	socket.on('timeSync', (time) => {
+		var now = getTime();
+	
+		timeOffset = (time + (now - offsetTimer) / 2) - now;
+		console.log("Set time offset to "+timeOffset);
+	});
+
+
+	socket.on('command', (msg) => {
+		var response = JSON.parse(msg);
+		console.log(response)
+		
+		var now = getTime();
+		
+		var delay = response['time'] - now;
+		
+
+		switch(response['command']) {
+			case "sync":
+				
+				player.pause();
+				player.currentTime = response['payload']/1000;
+				
+				setTimeout(function() {
+					console.log("test");
+					player.play();
+				}, delay)
+				
+				break;
+		
+		}
+		
+		console.log(delay)
+
+		
+	});
+}
+
+function getTime() {
+	return new Date().getTime()  + timeOffset;
+}
+
+
+</script>
+
+
+
+</html>
